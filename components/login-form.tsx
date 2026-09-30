@@ -1,15 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
 import { AuthCard } from "@/components/auth-card"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useRouter } from "next/navigation"
+import { useDemoSession } from "@/features/auth/session-provider"
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -19,7 +21,15 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState("")
+  const { user, ready, login } = useDemoSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (ready && user) router.replace("/overview")
+  }, [ready, user, router])
+
+  if (!ready || user) return null
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -28,8 +38,25 @@ export function LoginForm({
           className="p-6 md:p-8"
           onSubmit={(event) => {
             event.preventDefault()
-            event.currentTarget.reset()
-            setSubmitted(true)
+            const data = new FormData(event.currentTarget)
+            setError("")
+            try {
+              if (
+                !login(
+                  String(data.get("email") ?? ""),
+                  String(data.get("password") ?? "")
+                )
+              ) {
+                setError("Incorrect email or password.")
+                event.currentTarget
+                  .querySelector<HTMLInputElement>("#password")
+                  ?.focus()
+              }
+            } catch {
+              setError(
+                "Unable to save your session. Allow browser storage and try again."
+              )
+            }
           }}
         >
           <FieldGroup>
@@ -39,7 +66,7 @@ export function LoginForm({
                 Login to your FreshTrace account
               </p>
             </div>
-            <Field>
+            <Field data-invalid={Boolean(error)}>
               <FieldLabel htmlFor="email">Email</FieldLabel>
               <Input
                 id="email"
@@ -47,10 +74,13 @@ export function LoginForm({
                 type="email"
                 autoComplete="username"
                 placeholder="m@example.com"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "login-error" : undefined}
+                onChange={() => setError("")}
                 required
               />
             </Field>
-            <Field>
+            <Field data-invalid={Boolean(error)}>
               <div className="flex items-center">
                 <FieldLabel htmlFor="password">Password</FieldLabel>
                 <Link
@@ -65,19 +95,17 @@ export function LoginForm({
                 name="password"
                 type="password"
                 autoComplete="current-password"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "login-error" : undefined}
+                onChange={() => setError("")}
                 required
               />
             </Field>
-            <Field orientation="horizontal">
-              <Checkbox
-                id="remember-me"
-                name="rememberMe"
-                aria-describedby="login"
-              />
-              <FieldLabel htmlFor="remember-me" className="font-normal">
-                Remember me.
-              </FieldLabel>
-            </Field>
+            {error && <FieldError id="login-error">{error}</FieldError>}
+            <FieldDescription>
+              Demo sign-in. Your session is saved in this browser until you log
+              out.
+            </FieldDescription>
             <Field>
               <Button type="submit">Login</Button>
               <FieldDescription className="text-center">

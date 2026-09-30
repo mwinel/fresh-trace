@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { NavMain } from "@/components/nav-main"
+import { useDemoSession } from "@/features/auth/session-provider"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -17,13 +18,9 @@ import Link from "next/link"
 import { CommandIcon } from "lucide-react"
 import { mainNavigation, secondaryNavigation } from "@/config/navigation"
 
-const user = {
-  name: "shadcn",
-  email: "m@example.com",
-  avatar: "/avatars/shadcn.jpg",
-}
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useDemoSession()
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -43,9 +40,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={mainNavigation} />
         <NavMain items={secondaryNavigation} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={user} />
-      </SidebarFooter>
+      <SidebarFooter>{user && <NavUser user={user} />}</SidebarFooter>
     </Sidebar>
   )
 }
