@@ -1,7 +1,12 @@
 "use client"
 
+import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { PlusIcon } from "lucide-react"
+
 import { getNavigationTitle } from "@/config/navigation"
+
+import { buttonVariants } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
@@ -18,6 +23,15 @@ export function SiteHeader() {
         <h1 className="text-base font-medium">
           {getNavigationTitle(pathname)}
         </h1>
+        {pathname === "/samples" && (
+          <Link
+            href="/samples/register"
+            className={buttonVariants({ className: "ml-auto" })}
+          >
+            <PlusIcon data-icon="inline-start" aria-hidden="true" />
+            Register sample
+          </Link>
+        )}
       </div>
     </header>
   )

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "source-tanker-001",
+    "name": "Milk reception tanker",
+    "description": "Demo tanker delivering raw milk to the dairy.",
+    "type": "tanker",
+    "numberPlate": ""
+  },
+  {
+    "id": "source-truck-001",
+    "name": "Milk collection truck",
+    "description": "Demo truck collecting milk from suppliers.",
+    "type": "truck",
+    "numberPlate": "UBA 123A"
+  },
+  {
+    "id": "source-truck-002",
+    "name": "Milk collection truck 2",
+    "description": "Demo truck collecting milk from suppliers.",
+    "type": "truck",
+    "numberPlate": "UBQ 112X"
+  },
+  {
+    "id": "source-truck-003",
+    "name": "Milk collection truck 3",
+    "description": "Demo truck collecting milk from suppliers.",
+    "type": "truck",
+    "numberPlate": "UBB 456B"
+  },
+  {
+    "id": "source-truck-004",
+    "name": "Milk collection truck 4",
+    "description": "Demo truck collecting milk from suppliers.",
+    "type": "truck",
+    "numberPlate": "UBC 789C"
+  },
+  {
+    "id": "source-truck-005",
+    "name": "Milk collection truck 5",
+    "description": "Demo truck collecting milk from suppliers.",
+    "type": "truck",
+    "numberPlate": "UBD 234D"
+  },
+  {
+    "id": "source-cooling-tank-001",
+    "name": "Cooling tank",
+    "description": "Demo tank for cooling and holding raw milk.",
+    "type": "cooling-tank",
+    "numberPlate": ""
+  },
+  {
+    "id": "source-mixing-tank-001",
+    "name": "Mixing tank",
+    "description": "Demo tank for mixing dairy ingredients.",
+    "type": "mixing-tank",
+    "numberPlate": ""
+  },
+  {
+    "id": "source-bag-001",
+    "name": "Bag",
+    "description": "Demo bag containing a dairy ingredient.",
+    "type": "bag",
+    "numberPlate": ""
+  },
+  {
+    "id": "source-evaporator-001",
+    "name": "Evaporator",
+    "description": "Demo evaporator for concentrating milk.",
+    "type": "evaporator",
+    "numberPlate": ""
+  }
+]

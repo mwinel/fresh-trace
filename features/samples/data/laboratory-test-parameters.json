@@ -1,0 +1,88 @@
+{
+  "parameters": [
+    {
+      "name": "Organoleptic test",
+      "specification": "Characteristic",
+      "testMethod": "US EAS 67:2006 Annex A"
+    },
+    {
+      "name": "Temperature",
+      "unit": "°C",
+      "specification": "2.0 - 6.0",
+      "testMethod": "US EAS 67:2006 Annex A"
+    },
+    {
+      "name": "10 Minutes Resazurin Test",
+      "specification": "5.0 - 6.0",
+      "testMethod": "US EAS 67:2006 Annex A"
+    },
+    {
+      "name": "pH",
+      "specification": "6.6 - 6.8",
+      "testMethod": "US EAS 67:2019 Annex C"
+    },
+    {
+      "name": "Titratable acidity",
+      "unit": "%",
+      "specification": "0.17 Max",
+      "testMethod": "US EAS 67:2019 Annex E"
+    },
+    {
+      "name": "Density @ 20°C",
+      "unit": "g/ml",
+      "specification": "1.028 - 1.034",
+      "testMethod": "US EAS 67:2019 Annex D"
+    },
+    {
+      "name": "Solid non-fat",
+      "unit": "%",
+      "specification": "8.5 Min.",
+      "testMethod": "US ISO 6731:2013"
+    },
+    {
+      "name": "Milk fat",
+      "unit": "%",
+      "specification": "3.50 Min.",
+      "testMethod": "US ISO 2446:2013"
+    },
+    {
+      "name": "Freezing point",
+      "unit": "°C",
+      "specification": "-0.550 to -0.525",
+      "testMethod": "US ISO 5764:2013"
+    },
+    {
+      "name": "Added water",
+      "unit": "%",
+      "specification": "<3.0",
+      "testMethod": "US ISO 5764:2013"
+    },
+    {
+      "name": "80% Alcohol Test",
+      "specification": "Negative",
+      "testMethod": "US EAS 67:2019 Annex A"
+    },
+    {
+      "name": "Clot on boiling",
+      "specification": "Negative",
+      "testMethod": "US EAS 67:2019 Annex B"
+    },
+    {
+      "name": "Adulterants & Antibiotics",
+      "specification": "Negative",
+      "testMethod": "ISO/TS 23758:2021"
+    },
+    {
+      "name": "Lead (Pb) Max.",
+      "unit": "mg/kg",
+      "specification": "0.02 mg/kg",
+      "testMethod": "AOAC 999.10"
+    },
+    {
+      "name": "Aflatoxin M1 Max.",
+      "unit": "µg/kg",
+      "specification": "0.50 µg/kg",
+      "testMethod": "ISO 14501"
+    }
+  ]
+}

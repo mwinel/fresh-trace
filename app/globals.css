@@ -24,6 +24,10 @@
     --color-input: var(--input);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
+    --color-success: var(--success);
+    --color-notice: var(--notice);
+    --color-notice-border: var(--notice-border);
+    --color-notice-foreground: var(--notice-foreground);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);
@@ -48,6 +52,9 @@
 }
 
 :root {
+    --notice: oklch(0.987 0.022 95.277);
+    --notice-border: oklch(0.879 0.169 91.605);
+    --notice-foreground: oklch(0.414 0.112 45.904);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -63,6 +70,7 @@
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
+    --success: oklch(0.627 0.194 149.214);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
     --ring: oklch(0.708 0 0);
@@ -83,6 +91,9 @@
 }
 
 .dark {
+    --notice: oklch(0.279 0.077 45.635);
+    --notice-border: oklch(0.555 0.163 48.998);
+    --notice-foreground: oklch(0.962 0.059 95.617);
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
@@ -98,6 +109,7 @@
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
+    --success: oklch(0.792 0.209 151.711);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
@@ -126,4 +138,34 @@
   html {
     @apply font-sans;
     }
+}
+
+.report-print-view {
+  display: none;
+}
+
+@media print {
+  body:has(> .report-print-view) > :not(.report-print-view) {
+    display: none !important;
+  }
+  .report-print-view {
+    display: block;
+    color: black;
+    background: white;
+    --background: white;
+    --foreground: black;
+    --muted: #f5f5f5;
+    --muted-foreground: #444;
+    --border: #ccc;
+  }
+  .report-print-view article {
+    border: 0;
+    padding: 0;
+  }
+  .report-print-view [data-slot="table-container"] {
+    overflow: visible;
+  }
+  .report-print-view tr {
+    break-inside: avoid;
+  }
 }
