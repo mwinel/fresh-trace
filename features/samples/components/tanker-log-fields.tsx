@@ -19,12 +19,14 @@ const fieldGrid =
   "grid gap-3 [--registration-label-width:9rem] @[42rem]/registration:grid-cols-2 @[42rem]/registration:gap-x-6"
 
 export function TankerLogFields({
+  readOnly = false,
   sampleNumber,
   values,
   chambers,
   onChange,
   onChambersChange,
 }: {
+  readOnly?: boolean
   sampleNumber: string
   values: TankerLogDetails
   chambers: TankerChamberLog[]
@@ -36,6 +38,7 @@ export function TankerLogFields({
     field: keyof Omit<TankerChamberLog, "id">,
     value: string
   ) {
+    if (readOnly) return
     onChambersChange(
       chambers.map((row) => (row.id === id ? { ...row, [field]: value } : row))
     )
@@ -64,6 +67,7 @@ export function TankerLogFields({
           {tankerDeliveryFields.map(({ key, label, type }) => (
             <RegistrationField key={key} id={`tanker-${key}`} label={label}>
               <Input
+                readOnly={readOnly}
                 id={`tanker-${key}`}
                 type={type}
                 value={values[key]}
@@ -90,6 +94,7 @@ export function TankerLogFields({
           <FieldGroup className={fieldGrid}>
             <RegistrationField id={`tanker-${row.id}-chamber`} label="Chamber">
               <Input
+                readOnly={readOnly}
                 id={`tanker-${row.id}-chamber`}
                 placeholder="e.g. F, M, B"
                 value={row.chamber}
@@ -101,6 +106,7 @@ export function TankerLogFields({
             {tankerAnalysisFields.map(({ key, label, type, options }) =>
               options ? (
                 <SelectField
+                  readOnly={readOnly}
                   key={key}
                   id={`tanker-${row.id}-${key}`}
                   label={label}
@@ -116,6 +122,7 @@ export function TankerLogFields({
                   label={label}
                 >
                   <Input
+                    readOnly={readOnly}
                     id={`tanker-${row.id}-${key}`}
                     type={type}
                     step={type === "number" ? "any" : undefined}
@@ -128,7 +135,7 @@ export function TankerLogFields({
               )
             )}
           </FieldGroup>
-          {chambers.length > 1 && (
+          {!readOnly && chambers.length > 1 && (
             <Button
               type="button"
               variant="link"
@@ -155,14 +162,16 @@ export function TankerLogFields({
           )}
         </section>
       ))}
-      <Button
-        type="button"
-        variant="link"
-        className="self-start px-0"
-        onClick={() => onChambersChange([...chambers, createTankerChamber()])}
-      >
-        Add chamber
-      </Button>
+      {!readOnly && (
+        <Button
+          type="button"
+          variant="link"
+          className="self-start px-0"
+          onClick={() => onChambersChange([...chambers, createTankerChamber()])}
+        >
+          Add chamber
+        </Button>
+      )}
     </div>
   )
 }

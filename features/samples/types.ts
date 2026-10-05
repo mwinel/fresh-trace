@@ -1,5 +1,6 @@
 export type SampleRegistration = {
-  source: string
+  productType: FinalProductType | ""
+  sourceId: string
   description: string
   volume: string
   equipment: string
@@ -8,6 +9,7 @@ export type SampleRegistration = {
   integrity: string
   analysis: string
   sampler: string
+  receivedBy: string
 }
 
 export type SampleIdentity = {
@@ -21,7 +23,6 @@ export type SampleSource = {
   description: string
   type:
     "tanker" | "truck" | "cooling-tank" | "mixing-tank" | "bag" | "evaporator"
-  numberPlate: string
 }
 
 export type LabTestDetails = {
@@ -38,6 +39,8 @@ export type LabTestDetails = {
 export type LabTestResult = {
   id: string
   parameter: string
+  specification: string
+  testMethod: string
   fSilo: string
   mSilo: string
   bSilo: string
@@ -54,10 +57,8 @@ export type ReportReview = {
   conclusion: ReportConclusion | ""
   remarks: string
   analysedBy: ReportSignature | null
-  technicalSignatory: ReportSignature | null
-  decidedBy: ReportSignature | null
 }
-export type ReportReviewAction = "technical-sign-off" | "approved" | "rejected"
+export type ReportReviewAction = "approved" | "rejected"
 
 export type TankerLogDetails = {
   serialNumber: string
@@ -157,7 +158,9 @@ export type StandardizationLogDetails = {
   remarks: string
 }
 
-export type UhtLogDetails = {
+export type FinalProductType = "uht" | "flavored-milk" | "ghee"
+
+export type FinalProductLogValues = {
   serialNumber: string
   analysisDate: string
   product: string
@@ -192,4 +195,54 @@ export type UhtLogDetails = {
   finishedRemarks: string
   labTechnician: string
   remarks: string
+}
+
+export type FinalProductDemoValues = {
+  flavor: string
+  moisture: string
+  color: string
+  aroma: string
+  texture: string
+  packaging: string
+}
+
+export type FinalProductLogDetails = FinalProductLogValues &
+  Partial<FinalProductDemoValues> & {
+    productType?: FinalProductType
+    productDrafts?: Partial<
+      Record<
+        FinalProductType,
+        FinalProductLogValues & Partial<FinalProductDemoValues>
+      >
+    >
+  }
+
+export type SampleStage =
+  | "register"
+  | "lab-tests"
+  | "lab-report"
+  | "tanker"
+  | "silo"
+  | "standardization"
+  | "product-logs"
+export type SampleStatus =
+  "draft" | "registered" | "in-progress" | "awaiting-review" | "done"
+export type Sample = SampleIdentity & {
+  statusHistory: { status: SampleStatus; changedAt: string }[]
+  archivedAt: string | null
+  stage: SampleStage
+  status: SampleStatus
+  registration: SampleRegistration
+  laboratory: {
+    reportNumber: string
+    details: LabTestDetails
+    results: LabTestResult[]
+    review: ReportReview
+  }
+  logs: {
+    tanker: { details: TankerLogDetails; chambers: TankerChamberLog[] } | null
+    silo: SiloLogDetails | null
+    standardization: StandardizationLogDetails | null
+    finalProduct: FinalProductLogDetails | null
+  }
 }

@@ -1,8 +1,6 @@
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
+import { LatestSamplesTable } from "@/features/samples/components/latest-samples-table"
 import { SectionCards } from "@/components/section-cards"
-
-import data from "./data.json"
 
 export default function OverviewPage() {
   return (
@@ -13,7 +11,12 @@ export default function OverviewPage() {
           <div className="px-4 lg:px-6">
             <ChartAreaInteractive />
           </div>
-          <DataTable data={data} />
+          <div className="min-w-0 px-4 lg:px-6">
+            <LatestSamplesTable
+              showRowsPerPage={false}
+              showDescription={false}
+            />
+          </div>
         </div>
       </div>
     </div>

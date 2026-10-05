@@ -37,12 +37,14 @@ import {
 } from "@/components/ui/select"
 
 export function SourceField({
+  readOnly = false,
   sources,
   value,
   onChange,
   onAdd,
   error,
 }: {
+  readOnly?: boolean
   sources: SampleSource[]
   value: string
   onChange: (id: string) => void
@@ -59,19 +61,16 @@ export function SourceField({
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [type, setType] = useState<SampleSource["type"]>("tanker")
-  const [numberPlate, setNumberPlate] = useState("")
   const [nameError, setNameError] = useState("")
   const filtered = sources.filter((source) =>
-    `${sourceLabel(source)} ${source.name}`
-      .toLowerCase()
-      .includes(query.trim().toLowerCase())
+    source.name.toLowerCase().includes(query.trim().toLowerCase())
   )
 
   function startAdding() {
+    if (readOnly) return
     setName(query.trim())
     setDescription("")
     setType("tanker")
-    setNumberPlate("")
     setNameError("")
     setOpen(false)
     setDialogOpen(true)
@@ -80,6 +79,7 @@ export function SourceField({
   return (
     <>
       <Combobox
+        disabled={readOnly}
         items={filtered}
         filter={null}
         value={sources.find((source) => source.id === value) ?? null}
@@ -87,11 +87,12 @@ export function SourceField({
         isItemEqualToValue={(a, b) => a.id === b.id}
         inputValue={query}
         onInputValueChange={setQuery}
-        open={open}
+        open={!readOnly && open}
         onOpenChange={setOpen}
         onValueChange={(source) => onChange(source?.id ?? "")}
       >
         <ComboboxInput
+          disabled={readOnly}
           ref={inputRef}
           id="sample-source"
           placeholder="Search source or truck plate…"
@@ -112,7 +113,7 @@ export function SourceField({
         <ComboboxContent>
           <ComboboxEmpty className="flex-col items-center gap-2 px-3 py-3">
             <span>No matching sources.</span>
-            {query.trim() && (
+            {!readOnly && query.trim() && (
               <Button
                 type="button"
                 variant="outline"
@@ -123,7 +124,7 @@ export function SourceField({
                 Add source
               </Button>
             )}
-            {query.trim() && (
+            {!readOnly && query.trim() && (
               <span className="text-xs">Press Enter to add this source.</span>
             )}
           </ComboboxEmpty>
@@ -145,6 +146,7 @@ export function SourceField({
             onSubmit={(event) => {
               event.preventDefault()
               event.stopPropagation()
+              if (readOnly) return
               const trimmedName = name.trim()
               if (!trimmedName) {
                 setNameError("Enter a source name.")
@@ -161,13 +163,8 @@ export function SourceField({
                 toast.error("A source with this name already exists.")
                 return
               }
-              if (
-                !description.trim() ||
-                (type === "truck" && !numberPlate.trim())
-              ) {
-                toast.error(
-                  "Enter a description and, for trucks, a number plate containing more than spaces."
-                )
+              if (!description.trim()) {
+                toast.error("Enter a description containing more than spaces.")
                 return
               }
               const source: SampleSource = {
@@ -175,8 +172,6 @@ export function SourceField({
                 name: trimmedName,
                 description: description.trim(),
                 type,
-                numberPlate:
-                  type === "truck" ? numberPlate.trim().toUpperCase() : "",
               }
               onAdd(source)
               onChange(source.id)
@@ -196,7 +191,9 @@ export function SourceField({
               <Field data-invalid={Boolean(nameError)}>
                 <FieldLabel htmlFor="source-name">Name</FieldLabel>
                 <Input
+                  readOnly={readOnly}
                   id="source-name"
+                  placeholder="e.g. Truck · UBQ 112S or Cooling Tanker"
                   required
                   value={name}
                   onChange={(event) => {
@@ -211,6 +208,7 @@ export function SourceField({
                   Description
                 </FieldLabel>
                 <Textarea
+                  readOnly={readOnly}
                   id="source-description"
                   required
                   value={description}
@@ -220,6 +218,7 @@ export function SourceField({
               <Field>
                 <FieldLabel htmlFor="source-type">Source type</FieldLabel>
                 <Select
+                  disabled={readOnly}
                   items={sourceTypes}
                   value={type}
                   onValueChange={(value) => {
@@ -243,20 +242,6 @@ export function SourceField({
                   </SelectContent>
                 </Select>
               </Field>
-              {type === "truck" && (
-                <Field>
-                  <FieldLabel htmlFor="source-number-plate">
-                    Truck number plate
-                  </FieldLabel>
-                  <Input
-                    id="source-number-plate"
-                    required
-                    value={numberPlate}
-                    onChange={(event) => setNumberPlate(event.target.value)}
-                    placeholder="e.g. UBA 123A"
-                  />
-                </Field>
-              )}
             </FieldGroup>
             <DialogFooter>
               <Button

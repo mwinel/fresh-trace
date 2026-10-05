@@ -5,6 +5,13 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    --color-stage-register: var(--status-registered);
+    --color-stage-lab-tests: var(--status-in-progress);
+    --color-stage-lab-report: var(--status-awaiting-review);
+    --color-stage-tanker: oklch(0.7 0.14 195);
+    --color-stage-silo: oklch(0.7 0.18 145);
+    --color-stage-standardization: oklch(0.7 0.18 45);
+    --color-stage-product-logs: oklch(0.7 0.18 340);
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -25,6 +32,9 @@
     --color-border: var(--border);
     --color-destructive: var(--destructive);
     --color-success: var(--success);
+    --color-status-registered: var(--status-registered);
+    --color-status-in-progress: var(--status-in-progress);
+    --color-status-awaiting-review: var(--status-awaiting-review);
     --color-notice: var(--notice);
     --color-notice-border: var(--notice-border);
     --color-notice-foreground: var(--notice-foreground);
@@ -52,6 +62,12 @@
 }
 
 :root {
+    --product-uht: oklch(0.55 0.12 200);
+    --product-flavored-milk: oklch(0.58 0.18 350);
+    --product-ghee: oklch(0.6 0.12 85);
+    --status-registered: oklch(0.546 0.245 262.881);
+    --status-in-progress: oklch(0.541 0.281 293.009);
+    --status-awaiting-review: oklch(0.666 0.179 58.318);
     --notice: oklch(0.987 0.022 95.277);
     --notice-border: oklch(0.879 0.169 91.605);
     --notice-foreground: oklch(0.414 0.112 45.904);
@@ -91,6 +107,12 @@
 }
 
 .dark {
+    --product-uht: oklch(0.75 0.12 200);
+    --product-flavored-milk: oklch(0.76 0.14 350);
+    --product-ghee: oklch(0.82 0.14 85);
+    --status-registered: oklch(0.707 0.165 254.624);
+    --status-in-progress: oklch(0.702 0.183 293.541);
+    --status-awaiting-review: oklch(0.828 0.189 84.429);
     --notice: oklch(0.279 0.077 45.635);
     --notice-border: oklch(0.555 0.163 48.998);
     --notice-foreground: oklch(0.962 0.059 95.617);
@@ -169,3 +191,32 @@
     break-inside: avoid;
   }
 }
+
+@layer components {
+    .sample-metric-card {
+        border-top: 2px solid color-mix(in oklch, var(--sample-accent) 60%, transparent);
+        background: linear-gradient(
+            145deg,
+            color-mix(in oklch, var(--sample-accent) 7%, var(--card)),
+            var(--card) 70%
+        );
+        box-shadow: 0 2px 5px color-mix(in oklch, var(--sample-accent) 6%, transparent);
+    }
+
+    .sample-metric-icon {
+        background: color-mix(in oklch, var(--sample-accent) 12%, var(--card));
+        box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--sample-accent) 14%, transparent);
+    }
+}
+
+  .team-page [data-slot="table-row"][data-state="selected"] {
+    background: color-mix(in oklch, var(--primary) 9%, var(--background));
+  }
+  .team-active {
+    color: color-mix(in oklch, var(--success) 70%, var(--foreground));
+    background: color-mix(in oklch, var(--success) 12%, var(--background));
+  }
+  .team-action {
+    color: var(--primary);
+    border-color: color-mix(in oklch, var(--primary) 65%, var(--border));
+  }

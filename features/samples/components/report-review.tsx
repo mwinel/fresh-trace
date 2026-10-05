@@ -25,7 +25,6 @@ const conclusionLabels = {
   "does-not-conform": "Does not conform",
 }
 const actionLabels = {
-  "technical-sign-off": "Sign off technical review",
   approved: "Approve report",
   rejected: "Reject report",
 }
@@ -34,14 +33,12 @@ export function ReportReviewDialog({
   returnFocus,
   action,
   review,
-  reviewerName,
   onClose,
   onConfirm,
 }: {
   returnFocus: RefObject<HTMLButtonElement | null>
   action: ReportReviewAction
   review: ReportReview
-  reviewerName: string
   onClose: () => void
   onConfirm: (
     action: ReportReviewAction,
@@ -67,8 +64,8 @@ export function ReportReviewDialog({
         <DialogHeader>
           <DialogTitle>{actionLabels[action]}</DialogTitle>
           <DialogDescription>
-            Your name ({reviewerName}) and the current date will be recorded.
-            Demo changes reset on refresh.
+            Your review decision, conclusion, and remarks will be retained. Demo
+            changes reset on refresh.
           </DialogDescription>
         </DialogHeader>
         <form

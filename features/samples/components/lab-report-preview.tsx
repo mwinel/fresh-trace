@@ -6,13 +6,11 @@ import { createPortal } from "react-dom"
 import { EllipsisIcon, LockKeyholeIcon } from "lucide-react"
 import { cn } from "cn"
 
-import { testParameters } from "../data"
 import type {
   LabTestDetails,
   LabTestResult,
   SampleIdentity,
   SampleSource,
-  ReportReviewStatus,
   ReportReview,
   ReportConclusion,
   ReportReviewAction,
@@ -36,11 +34,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 
-const reviewLabels: Record<ReportReviewStatus, string> = {
-  "awaiting-review": "Awaiting review",
-  approved: "Approved",
-  rejected: "Rejected",
-}
+import { reportStatusLabels as reviewLabels } from "../report-status"
 
 function formatDate(value: string) {
   if (!value) return "n/a"
@@ -158,11 +152,13 @@ function ReportDocument({
           n/a indicates no value recorded.
         </p>
       </div>
-      <Table className="min-w-[600px] table-fixed">
+      <Table className="min-w-[1000px] table-fixed">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             {[
               "Parameter",
+              "Specification",
+              "Test method",
               "F/SILO",
               "M/SILO",
               "B/SILO",
@@ -174,7 +170,7 @@ function ReportDocument({
                 scope="col"
                 className={cn(
                   "h-11 px-3 text-xs text-muted-foreground first:pl-0 last:pr-0",
-                  index === 0 ? "w-[30%]" : "w-[14%]"
+                  index === 0 ? "w-[20%]" : "w-auto"
                 )}
               >
                 {label}
@@ -183,12 +179,17 @@ function ReportDocument({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {testParameters.map((parameter) => {
-            const row = results.find((result) => result.parameter === parameter)
+          {results.map((row) => {
             return (
-              <TableRow key={parameter} className="hover:bg-transparent">
+              <TableRow key={row.id} className="hover:bg-transparent">
                 <TableCell className="py-3 pr-3 pl-0 whitespace-normal">
-                  {parameter}
+                  {row.parameter}
+                </TableCell>
+                <TableCell className="whitespace-normal">
+                  {row.specification || "n/a"}
+                </TableCell>
+                <TableCell className="whitespace-normal">
+                  {row.testMethod || "n/a"}
                 </TableCell>
                 {[row?.fSilo, row?.mSilo, row?.bSilo, row?.lSilo].map(
                   (value, index) => (
@@ -229,11 +230,11 @@ function ReportDocument({
 }
 
 export function LabReportPreview({
+  readOnly = false,
   onReview,
-  reviewerName,
   ...report
 }: ReportProps & {
-  reviewerName: string
+  readOnly?: boolean
   onReview: (
     action: ReportReviewAction,
     conclusion: ReportConclusion,
@@ -263,21 +264,25 @@ export function LabReportPreview({
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => window.print()}>
-                Share report
+                Print report
               </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={report.review.status === "approved"}
-                onClick={() => setAction("approved")}
-              >
-                Approve
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                disabled={report.review.status === "rejected"}
-                onClick={() => setAction("rejected")}
-              >
-                Reject
-              </DropdownMenuItem>
+              {!readOnly && (
+                <>
+                  <DropdownMenuItem
+                    disabled={report.review.status === "approved"}
+                    onClick={() => setAction("approved")}
+                  >
+                    Approve
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    disabled={report.review.status === "rejected"}
+                    onClick={() => setAction("rejected")}
+                  >
+                    Reject
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -287,12 +292,11 @@ export function LabReportPreview({
         Automatically populated · Read-only
       </p>
       <ReportDocument {...report} />
-      {action && (
+      {!readOnly && action && (
         <ReportReviewDialog
           returnFocus={actionsButton}
           action={action}
           review={report.review}
-          reviewerName={reviewerName}
           onClose={() => setAction(null)}
           onConfirm={onReview}
         />

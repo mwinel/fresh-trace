@@ -71,6 +71,7 @@ export function LockedField({
 }
 
 export function SelectField({
+  readOnly = false,
   id,
   label,
   placeholder,
@@ -79,6 +80,7 @@ export function SelectField({
   onChange,
   className,
 }: {
+  readOnly?: boolean
   className?: string
   id: string
   label: string
@@ -90,6 +92,7 @@ export function SelectField({
   return (
     <RegistrationField id={id} label={label} className={className}>
       <Select
+        disabled={readOnly}
         value={value || null}
         onValueChange={(next) => onChange(next ?? "")}
         items={options.map((option) => ({ label: option, value: option }))}

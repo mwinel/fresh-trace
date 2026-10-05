@@ -12,12 +12,14 @@ import {
 import type { SampleLogSection } from "../types"
 
 export function SampleLogFields<Key extends string>({
+  readOnly = false,
   prefix,
   sections,
   sampleNumber,
   values,
   onChange,
 }: {
+  readOnly?: boolean
   prefix: string
   sections: SampleLogSection<Key>[]
   sampleNumber: string
@@ -58,6 +60,7 @@ export function SampleLogFields<Key extends string>({
               ({ key, label, type, options, startsNewRow }) =>
                 options ? (
                   <SelectField
+                    readOnly={readOnly}
                     key={key}
                     id={`${prefix}-${key}`}
                     label={label}
@@ -83,14 +86,17 @@ export function SampleLogFields<Key extends string>({
                   >
                     {type === "textarea" ? (
                       <Textarea
+                        readOnly={readOnly}
                         id={`${prefix}-${key}`}
                         value={values[key]}
                         onChange={(event) => onChange(key, event.target.value)}
                       />
                     ) : (
                       <Input
+                        readOnly={readOnly || key === "labTechnician"}
                         id={`${prefix}-${key}`}
                         type={type}
+
                         step={type === "number" ? "any" : undefined}
                         value={values[key]}
                         onChange={(event) => onChange(key, event.target.value)}

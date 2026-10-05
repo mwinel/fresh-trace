@@ -16,17 +16,19 @@ import {
   LockedField,
   SelectField,
 } from "./sample-form-fields"
-import { labTestOptions } from "../data"
+import { labTestOptions } from "../data/registration-data"
 import { TestResultsSection } from "./test-results-section"
 import type { LabTestDetails, LabTestResult } from "../types"
 
 export function LabTestFields({
+  readOnly = false,
   reportNumber,
   testResults,
   onTestResultsChange,
   values,
   onChange,
 }: {
+  readOnly?: boolean
   reportNumber: string
   testResults: LabTestResult[]
   onTestResultsChange: (rows: LabTestResult[]) => void
@@ -55,6 +57,7 @@ export function LabTestFields({
             label="Delivery number"
           >
             <Input
+              readOnly={readOnly}
               id="test-delivery-report-number"
               value={values.deliveryReportNumber}
               onChange={(event) =>
@@ -64,11 +67,16 @@ export function LabTestFields({
           </RegistrationField>
           <RegistrationField id="test-client" label="Client">
             <Combobox
+              disabled={readOnly}
               items={labTestOptions.clients}
               value={values.client || null}
               onValueChange={(value) => onChange("client", value ?? "")}
             >
-              <ComboboxInput id="test-client" placeholder="Search client…" />
+              <ComboboxInput
+                disabled={readOnly}
+                id="test-client"
+                placeholder="Search client…"
+              />
               <ComboboxContent>
                 <ComboboxEmpty>No matching clients.</ComboboxEmpty>
                 <ComboboxList>
@@ -95,6 +103,7 @@ export function LabTestFields({
         <FieldGroup className="grid gap-3 [--registration-label-width:9rem] @[42rem]/registration:grid-cols-2 @[42rem]/registration:gap-x-6">
           <RegistrationField id="test-sampling-date" label="Sampling date">
             <Input
+              readOnly={readOnly}
               id="test-sampling-date"
               type="date"
               value={values.samplingDate}
@@ -103,6 +112,7 @@ export function LabTestFields({
           </RegistrationField>
           <RegistrationField id="test-sell-by-date" label="Sell-by date">
             <Input
+              readOnly={readOnly}
               id="test-sell-by-date"
               type="date"
               value={values.sellByDate}
@@ -122,6 +132,7 @@ export function LabTestFields({
         />
         <FieldGroup className="grid gap-3 [--registration-label-width:9rem] @[42rem]/registration:grid-cols-2 @[42rem]/registration:gap-x-6">
           <SelectField
+            readOnly={readOnly}
             id="test-testing-lab"
             label="Testing lab"
             placeholder="Select testing lab…"
@@ -131,6 +142,7 @@ export function LabTestFields({
           />
           <RegistrationField id="test-testing-date" label="Testing date">
             <Input
+              readOnly={readOnly}
               id="test-testing-date"
               type="date"
               value={values.testingDate}
@@ -139,6 +151,7 @@ export function LabTestFields({
           </RegistrationField>
           <RegistrationField id="test-testing-time" label="Testing time">
             <Input
+              readOnly={readOnly}
               id="test-testing-time"
               type="time"
               value={values.testingTime}
@@ -147,7 +160,11 @@ export function LabTestFields({
           </RegistrationField>
         </FieldGroup>
       </section>
-      <TestResultsSection rows={testResults} onChange={onTestResultsChange} />
+      <TestResultsSection
+        readOnly={readOnly}
+        rows={testResults}
+        onChange={onTestResultsChange}
+      />
     </div>
   )
 }

@@ -2,9 +2,23 @@
 
 import { SourceField } from "./source-field"
 
-import { sampleOptions } from "../data"
-import type { SampleIdentity, SampleRegistration, SampleSource } from "../types"
+import { sampleOptions } from "../data/registration-data"
+import type {
+  SampleIdentity,
+  SampleRegistration,
+  SampleSource,
+  FinalProductType,
+} from "../types"
 
+import { productOptions, isProductType } from "../products"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { FieldGroup } from "@/components/ui/field"
 import {
   SampleSectionHeading,
@@ -22,18 +36,24 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 
 export function RegistrationFields({
+  readOnly = false,
   identity,
   receivedBy,
   values,
   onChange,
   sourceError,
+  productError,
+  onProductChange,
   sources,
   onAddSource,
 }: {
+  readOnly?: boolean
   identity: SampleIdentity
   receivedBy: string
   values: SampleRegistration
   onChange: (field: keyof SampleRegistration, value: string) => void
+  productError: string
+  onProductChange: (value: FinalProductType) => void
   sourceError: string
   sources: SampleSource[]
   onAddSource: (source: SampleSource) => void
@@ -65,6 +85,7 @@ export function RegistrationFields({
           <LockedField id="sample-date" label="Sample date" value={date} />
           <RegistrationField id="sample-receipt-time" label="Receipt time">
             <Input
+              readOnly={readOnly}
               id="sample-receipt-time"
               type="time"
               value={values.receiptTime}
@@ -74,6 +95,7 @@ export function RegistrationFields({
           <RegistrationField id="sample-temperature" label="Temperature °C">
             <InputGroup>
               <InputGroupInput
+                readOnly={readOnly}
                 id="sample-temperature"
                 type="number"
                 step="any"
@@ -96,14 +118,55 @@ export function RegistrationFields({
             error={sourceError}
           >
             <SourceField
+              readOnly={readOnly}
               sources={sources}
-              value={values.source}
-              onChange={(value) => onChange("source", value)}
+              value={values.sourceId}
+              onChange={(value) => onChange("sourceId", value)}
               onAdd={onAddSource}
               error={sourceError}
             />
           </RegistrationField>
+          <RegistrationField
+            id="sample-product"
+            label="Product"
+            error={productError}
+          >
+            <Select
+              disabled={readOnly}
+              value={values.productType || null}
+              items={productOptions}
+              onValueChange={(value) => {
+                if (isProductType(value)) onProductChange(value)
+              }}
+            >
+              <SelectTrigger
+                id="sample-product"
+                className="w-full"
+                aria-invalid={Boolean(productError)}
+                aria-describedby={
+                  productError ? "sample-product-error" : undefined
+                }
+              >
+                <SelectValue placeholder="Select product" />
+              </SelectTrigger>
+              <SelectContent side="bottom" alignItemWithTrigger={false}>
+                <SelectGroup>
+                  {productOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            {productError && (
+              <p id="sample-product-error" className="text-sm text-destructive">
+                {productError}
+              </p>
+            )}
+          </RegistrationField>
           <SelectField
+            readOnly={readOnly}
             id="sample-volume"
             label="Size / volume"
             placeholder="Select volume"
@@ -112,6 +175,7 @@ export function RegistrationFields({
             onChange={(value) => onChange("volume", value)}
           />
           <SelectField
+            readOnly={readOnly}
             id="sample-equipment"
             label="Equipment"
             placeholder="Select equipment"
@@ -137,6 +201,7 @@ export function RegistrationFields({
           className="[--registration-label-width:7rem] @[42rem]/registration:w-2/3"
         >
           <Textarea
+            readOnly={readOnly}
             id="sample-description"
             className="min-h-34"
             placeholder="Describe the sample or add collection notes…"
@@ -157,6 +222,7 @@ export function RegistrationFields({
         />
         <FieldGroup className="gap-3 [--registration-label-width:7rem]">
           <SelectField
+            readOnly={readOnly}
             id="sample-integrity"
             label="Integrity"
             placeholder="Select integrity"
@@ -167,6 +233,7 @@ export function RegistrationFields({
         </FieldGroup>
         <FieldGroup className="gap-3 [--registration-label-width:8rem]">
           <SelectField
+            readOnly={readOnly}
             id="sample-analysis"
             label="Analysis"
             placeholder="Select analysis"
@@ -188,6 +255,7 @@ export function RegistrationFields({
         />
         <FieldGroup className="gap-3 [--registration-label-width:7rem]">
           <SelectField
+            readOnly={readOnly}
             id="sample-sampler"
             label="Sampler"
             placeholder="Select person"

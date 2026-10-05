@@ -1,6 +1,13 @@
-import type { SampleLogSection, UhtLogDetails } from "./types"
+import { productOptions as finalProductOptions } from "./products"
+import type {
+  SampleLogSection,
+  FinalProductLogDetails,
+  FinalProductLogValues,
+  FinalProductDemoValues,
+  FinalProductType,
+} from "./types"
 
-export const emptyUhtLog: UhtLogDetails = {
+export const emptyFinalProductLog: FinalProductLogDetails = {
   serialNumber: "",
   analysisDate: "",
   product: "",
@@ -38,7 +45,9 @@ export const emptyUhtLog: UhtLogDetails = {
 }
 
 // Record measured results without applying product-specific acceptance rules.
-export const uhtLogSections: SampleLogSection<keyof UhtLogDetails>[] = [
+export const finalProductLogSections: SampleLogSection<
+  keyof FinalProductLogValues
+>[] = [
   {
     id: "sample",
     title: "Product and batch details",
@@ -56,7 +65,7 @@ export const uhtLogSections: SampleLogSection<keyof UhtLogDetails>[] = [
   },
   {
     id: "silo",
-    title: "UHT silo analysis",
+    title: "Silo analysis",
     description:
       "Record the silo sample readings at the three-hour sampling interval shown in the log.",
     fields: [
@@ -81,7 +90,7 @@ export const uhtLogSections: SampleLogSection<keyof UhtLogDetails>[] = [
   },
   {
     id: "finished-product",
-    title: "UHT finished-product analysis",
+    title: "Finished-product analysis",
     description:
       "Record the hourly finished-product readings. H.I. is recorded per sterilizer per shift.",
     fields: [
@@ -124,3 +133,103 @@ export const uhtLogSections: SampleLogSection<keyof UhtLogDetails>[] = [
     ],
   },
 ]
+
+export { productOptions as finalProductOptions } from "./products"
+
+export const emptyFinalProductDemoValues: FinalProductDemoValues = {
+  flavor: "",
+  moisture: "",
+  color: "",
+  aroma: "",
+  texture: "",
+  packaging: "",
+}
+
+type ProductSection = SampleLogSection<
+  keyof (FinalProductLogValues & FinalProductDemoValues)
+>
+
+const sensorySection: ProductSection = {
+  id: "sensory-packaging",
+  title: "Sensory observations and packaging",
+  description: "Record observations for this demo analysis.",
+  fields: [
+    { key: "color", label: "Color / appearance" },
+    { key: "aroma", label: "Aroma" },
+    { key: "texture", label: "Texture / consistency" },
+    { key: "packaging", label: "Packaging observations", type: "textarea" },
+  ],
+}
+
+// Illustrative demo fields only; no acceptance thresholds or sampling rules.
+export const finalProductSectionsByType: Record<
+  FinalProductType,
+  ProductSection[]
+> = {
+  uht: finalProductLogSections,
+  "flavored-milk": [
+    finalProductLogSections[0],
+    {
+      id: "flavored-milk-analysis",
+      title: "Flavored milk analysis",
+      description:
+        "Demo fields for Fresh Dairy Flavored Milk; record measured results without pass/fail criteria.",
+      fields: [
+        { key: "flavor", label: "Flavor" },
+        { key: "finishedTime", label: "Sample time", type: "time" },
+        { key: "temperature", label: "Temperature (°C)", type: "number" },
+        { key: "finishedFat", label: "Fat (%)", type: "number" },
+        { key: "finishedPh", label: "pH", type: "number" },
+        { key: "brix", label: "Brix (°Bx)", type: "number" },
+        { key: "finishedLacticAcid", label: "Lactic acid (%)", type: "number" },
+        {
+          key: "averageWeight",
+          label: "Average pack weight (g)",
+          type: "number",
+        },
+      ],
+    },
+    sensorySection,
+    finalProductLogSections[3],
+  ],
+  ghee: [
+    finalProductLogSections[0],
+    {
+      id: "ghee-analysis",
+      title: "Ghee analysis",
+      description:
+        "Demo fields for Pure Natural Ghee; record measured results without pass/fail criteria.",
+      fields: [
+        { key: "finishedTime", label: "Sample time", type: "time" },
+        { key: "temperature", label: "Temperature (°C)", type: "number" },
+        { key: "moisture", label: "Moisture (%)", type: "number" },
+        { key: "finishedFat", label: "Milk fat (%)", type: "number" },
+        {
+          key: "averageWeight",
+          label: "Average pack weight (g)",
+          type: "number",
+        },
+      ],
+    },
+    sensorySection,
+    finalProductLogSections[3],
+  ],
+}
+
+export function selectFinalProduct(
+  log: FinalProductLogDetails,
+  nextType: FinalProductType
+): FinalProductLogDetails {
+  const { productType = "uht", productDrafts = {}, ...values } = log
+  if (productType === nextType) return log
+  return {
+    ...(productDrafts[nextType] ?? {
+      ...emptyFinalProductLog,
+      product:
+        finalProductOptions.find((option) => option.value === nextType)
+          ?.label ?? "",
+    }),
+    productType: nextType,
+    productDrafts: { ...productDrafts, [productType]: values },
+  }
+}

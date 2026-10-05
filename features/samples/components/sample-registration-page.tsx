@@ -1,22 +1,33 @@
 "use client"
 
-import { useRef, useState } from "react"
-import Link from "next/link"
+import { useEffect, useRef, useState, type FormEvent } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import {
+  canViewStage,
+  resolveStage,
+  stageIndex,
+  canAdvance,
+  advanceSample,
+} from "../workflow"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react"
 
 import { useDemoSession } from "@/features/auth/session-provider"
-import { sampleSteps, initialSources, testParameters } from "../data"
-import type {
-  SampleIdentity,
-  SampleRegistration,
-  LabTestDetails,
-  ReportReview,
-} from "../types"
+import { sampleSteps } from "../data/registration-data"
+import type { SampleListItem } from "../data/latest-samples"
+import {
+  emptyReview,
+  changeSampleProduct,
+  sampleProductError,
+  sampleFinalProductLog,
+} from "../sample-state"
+import { useSamples } from "./sample-provider"
+import type { Sample } from "../types"
+import type { SampleRegistration } from "../types"
 
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { createTestResult } from "./test-results-section"
+import { Button } from "@/components/ui/button"
 import { LabReportPreview } from "./lab-report-preview"
 import { LabTestFields } from "./lab-test-fields"
 import { RegistrationFields } from "./registration-fields"
@@ -25,130 +36,256 @@ import {
   emptyStandardizationLog,
   standardizationLogSections,
 } from "../standardization-log"
-import { emptyUhtLog, uhtLogSections } from "../uht-log"
+import { FinalProductLogFields } from "./final-product-log-fields"
 import { SiloLogFields } from "./silo-log-fields"
 import { emptySiloLog } from "../silo-log"
 import { TankerLogFields } from "./tanker-log-fields"
 import { createTankerChamber, emptyTankerLog } from "../tanker-log"
 
-const emptyReview: ReportReview = {
-  status: "awaiting-review",
-  conclusion: "",
-  remarks: "",
-  analysedBy: null,
-  technicalSignatory: null,
-  decidedBy: null,
-}
-
-const emptyRegistration: SampleRegistration = {
-  source: "",
-  description: "",
-  volume: "",
-  equipment: "",
-  temperature: "",
-  receiptTime: "",
-  integrity: "",
-  analysis: "",
-  sampler: "",
-}
-
-type SavedSample = SampleIdentity & {
-  values: SampleRegistration
-  receivedBy: string
-  status: "draft" | "registered"
-}
-
-export function SampleRegistrationPage() {
+export function SampleRegistrationPage({
+  existingSample,
+}: {
+  existingSample: SampleListItem
+}) {
   const { user } = useDemoSession()
-  // The dashboard session gate mounts this page only in the browser.
-  const [identity] = useState<SampleIdentity>(() => ({
-    id: `SM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-    createdAt: new Date().toISOString(),
-  }))
-  const [reportNumber] = useState(
-    () => `RP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+  const { samples, sources, addSource, saveSample } = useSamples()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const requested =
+    searchParams.get("stage") ??
+    (searchParams.get("view") === "report" ? "lab-report" : null)
+  const viewedStage = resolveStage(existingSample, requested)
+  const step = stageIndex(viewedStage)
+  const editing = searchParams.get("mode") === "edit"
+  const [sample, setSample] = useState<Sample>(() =>
+    structuredClone(existingSample)
   )
-  const [labDetails, setLabDetails] = useState<LabTestDetails>({
-    deliveryReportNumber: "",
-    client: "",
-    testingLab: "",
-    sellByDate: "",
-    samplingDate: "",
-    testingDate: "",
-    reportIssueDate: new Intl.DateTimeFormat("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "Africa/Kampala",
-    }).format(new Date(identity.createdAt)),
-    testingTime: "",
-  })
-  const [testResults, setTestResults] = useState(() =>
-    testParameters.slice(0, 4).map((parameter) => createTestResult(parameter))
-  )
-  const [review, setReview] = useState<ReportReview>(emptyReview)
-  const [standardizationDetails, setStandardizationDetails] = useState(
-    emptyStandardizationLog
-  )
-  const [uhtDetails, setUhtDetails] = useState(emptyUhtLog)
-  const [siloDetails, setSiloDetails] = useState(emptySiloLog)
-  const [tankerDetails, setTankerDetails] = useState(emptyTankerLog)
-  const [tankerChambers, setTankerChambers] = useState(() =>
+  // Provider-managed history is not an unsaved form edit.
+  const dirty =
+    JSON.stringify({
+      ...sample,
+      statusHistory: existingSample.statusHistory,
+    }) !== JSON.stringify(existingSample)
+  useEffect(() => {
+    if (requested && !canViewStage(existingSample, requested)) {
+      window.history.replaceState(
+        null,
+        "",
+        `/samples/${existingSample.id}?stage=${existingSample.stage}${editing ? "&mode=edit" : ""}`
+      )
+    }
+  }, [requested, existingSample, editing])
+  function navigate(stage = viewedStage, editMode = editing) {
+    window.history.replaceState(
+      null,
+      "",
+      `/samples/${sample.id}?stage=${stage}${editMode ? "&mode=edit" : ""}`
+    )
+  }
+  function discardChanges() {
+    if (dirty && !window.confirm("Discard unsaved changes?")) return false
+    setSample(structuredClone(existingSample))
+    return true
+  }
+  const displayedSample = editing ? sample : existingSample
+  const identity = displayedSample
+  const values = displayedSample.registration
+  const {
+    reportNumber,
+    details: labDetails,
+    results: testResults,
+    review,
+  } = displayedSample.laboratory
+  const standardizationDetails =
+    displayedSample.logs.standardization ?? emptyStandardizationLog
+  const finalProductDetails = sampleFinalProductLog(displayedSample)
+  const siloDetails = displayedSample.logs.silo ?? emptySiloLog
+  const [initialChambers] = useState(() =>
     ["F", "M", "B"].map(createTankerChamber)
   )
-  const [sources, setSources] = useState(initialSources)
-  const [values, setValues] = useState(emptyRegistration)
-  const [step, setStep] = useState(0)
-  const [saved, setSaved] = useState<SavedSample | null>(null)
-  const [sourceError, setSourceError] = useState("")
-  const heading = useRef<HTMLHeadingElement>(null)
-  const currentStep = sampleSteps[step]
-  const stepForm = (
-    {
-      1: "sample-lab-tests",
-      3: "sample-tanker-log",
-      4: "sample-silo-log",
-      5: "sample-standardization-log",
-      6: "sample-uht-log",
-    } as Record<number, string | undefined>
-  )[step]
-  const isSaved =
-    saved !== null && JSON.stringify(saved.values) === JSON.stringify(values)
+  const tankerDetails = displayedSample.logs.tanker?.details ?? emptyTankerLog
+  const tankerChambers =
+    displayedSample.logs.tanker?.chambers ?? (editing ? initialChambers : [])
 
-  function updateField(field: keyof SampleRegistration, value: string) {
-    setReview(emptyReview)
-    setValues((current) => ({ ...current, [field]: value }))
-    if (field === "source") setSourceError("")
+  function updateLaboratory<K extends keyof Sample["laboratory"]>(
+    key: K,
+    value: Sample["laboratory"][K]
+  ) {
+    if (!editing) return
+    setSample((current) => ({
+      ...current,
+      laboratory: {
+        ...current.laboratory,
+        [key]: value,
+        review: { ...emptyReview },
+      },
+    }))
   }
 
-  function selectStep(index: number) {
-    setStep(index)
-    heading.current?.focus()
+  function updateLog<K extends keyof Sample["logs"]>(
+    key: K,
+    value: Sample["logs"][K]
+  ) {
+    if (!editing) return
+    setSample((current) => ({
+      ...current,
+      logs: { ...current.logs, [key]: value },
+    }))
   }
 
-  function save(status: SavedSample["status"]) {
-    if (!user) return
-    setSaved({
-      ...identity,
-      receivedBy: user.name,
-      values: { ...values },
-      status,
+  function persist(next: Sample = sample) {
+    if (!editing) return
+    const saved = samples.find((item) => item.id === next.id)
+    for (const key of ["silo", "standardization", "finalProduct"] as const) {
+      const log = next.logs[key]
+      if (log && JSON.stringify(log) !== JSON.stringify(saved?.logs[key])) {
+        next = {
+          ...next,
+          logs: {
+            ...next.logs,
+            [key]: { ...log, labTechnician: user?.name ?? "" },
+          },
+        }
+      }
+    }
+
+    setSample(next)
+    saveSample(next)
+    navigate(next.stage === existingSample.stage ? viewedStage : next.stage)
+    toast.success("Sample updated successfully.", {
+      description: "Changes are temporary and reset when you refresh.",
+      position: "top-right",
     })
   }
 
+  function submit(advance = false) {
+    if (!editing || !user) return
+
+    if (
+      advance &&
+      viewedStage === "register" &&
+      !sample.registration.sourceId
+    ) {
+      setSourceError("Select a source before registering the sample.")
+      toast.error("Select a source before registering the sample.")
+      document.getElementById("sample-source")?.focus()
+      return
+    }
+
+    const productMessage = sampleProductError(sample, advance)
+    setProductError(productMessage)
+    if (productMessage) {
+      toast.error(productMessage)
+      document.getElementById("sample-product")?.focus()
+      return
+    }
+
+    let next = sample
+
+    if (editing) {
+      if (step === 3 && !next.logs.tanker)
+        next = {
+          ...next,
+          logs: {
+            ...next.logs,
+            tanker: { details: tankerDetails, chambers: tankerChambers },
+          },
+        }
+      if (step === 4 && !next.logs.silo)
+        next = { ...next, logs: { ...next.logs, silo: { ...emptySiloLog } } }
+      if (step === 5 && !next.logs.standardization)
+        next = {
+          ...next,
+          logs: {
+            ...next.logs,
+            standardization: { ...emptyStandardizationLog },
+          },
+        }
+      if (step === 6 && !next.logs.finalProduct)
+        next = {
+          ...next,
+          logs: { ...next.logs, finalProduct: sampleFinalProductLog(next) },
+        }
+    }
+
+    if (viewedStage === "lab-tests" && (editing || advance))
+      next = {
+        ...next,
+        laboratory: {
+          ...next.laboratory,
+          review: {
+            ...next.laboratory.review,
+            analysedBy: {
+              name: user.name,
+              email: user.email,
+              signedAt: new Date().toISOString(),
+            },
+          },
+        },
+      }
+
+    if (advance) next = advanceSample(next, viewedStage)
+
+    persist(next)
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    submit(
+      (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") ===
+        "advance"
+    )
+  }
+
+  const formId = [
+    "sample-registration",
+    "sample-lab-tests",
+    undefined,
+    "sample-tanker-log",
+    "sample-silo-log",
+    "sample-standardization-log",
+    "sample-final-product-log",
+  ][step]
+  const [productError, setProductError] = useState("")
+  const [sourceError, setSourceError] = useState("")
+  const heading = useRef<HTMLHeadingElement>(null)
+  const currentStep = sampleSteps[step]
+
+  function updateField(field: keyof SampleRegistration, value: string) {
+    if (!editing) return
+
+    setSample((current) => ({
+      ...current,
+      registration: { ...current.registration, [field]: value },
+      laboratory: { ...current.laboratory, review: { ...emptyReview } },
+    }))
+
+    if (field === "sourceId") setSourceError("")
+  }
+
+  function selectStep(index: number) {
+    const stage = sampleSteps[index]?.id
+
+    if (!stage || !canViewStage(existingSample, stage) || !discardChanges())
+      return
+    navigate(stage)
+    heading.current?.focus()
+  }
+
   return (
-    <div className="flex h-[calc(100dvh-var(--header-height))] min-h-0 min-w-0 flex-col gap-5 p-4 md:h-[calc(100dvh-var(--header-height)-1rem)] lg:p-6">
+    <div className="grid h-[calc(100dvh-var(--header-height))] min-h-0 min-w-0 shrink-0 grid-rows-[auto_minmax(0,1fr)] gap-5 overflow-hidden p-4 md:h-[calc(100dvh-var(--header-height)-1rem)] lg:p-6">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Link
-            href="/samples"
-            className={buttonVariants({
-              variant: "secondary",
-              size: "icon-sm",
-            })}
+          <Button
+            variant="secondary"
+            size="icon-sm"
+            aria-label="Back to Samples"
+            onClick={() => {
+              if (discardChanges()) router.push("/samples")
+            }}
           >
-            <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
-          </Link>
+            <ArrowLeftIcon aria-hidden="true" />
+          </Button>
           <h2
             ref={heading}
             tabIndex={-1}
@@ -157,10 +294,16 @@ export function SampleRegistrationPage() {
             Step {step + 1} · {currentStep.title}
           </h2>
         </div>
-        <p className="pr-0.5 text-sm font-medium">{identity.id}</p>
       </div>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border">
-        <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-5 px-4 md:grid-cols-[220px_minmax(0,1fr)] md:grid-rows-1 lg:gap-6">
+      <div
+        className={cn(
+          "grid min-h-0 min-w-0 overflow-hidden rounded-xl border",
+          editing
+            ? "grid-rows-[minmax(0,1fr)_auto]"
+            : "grid-rows-[minmax(0,1fr)]"
+        )}
+      >
+        <div className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-5 overflow-hidden px-4 md:grid-cols-[220px_minmax(0,1fr)] md:grid-rows-1 lg:gap-6">
           <nav
             aria-label="Sample registration steps"
             className="min-h-0 min-w-0 overflow-auto pt-4 md:pb-4"
@@ -173,6 +316,12 @@ export function SampleRegistrationPage() {
                     variant={step === index ? "secondary" : "ghost"}
                     className="w-full justify-start font-normal"
                     aria-current={step === index ? "step" : undefined}
+                    disabled={!canViewStage(existingSample, item.id)}
+                    title={
+                      !canViewStage(existingSample, item.id)
+                        ? "Not reached"
+                        : undefined
+                    }
                     onClick={() => selectStep(index)}
                   >
                     <Badge
@@ -182,6 +331,9 @@ export function SampleRegistrationPage() {
                       {index + 1}
                     </Badge>
                     {item.label}
+                    {!canViewStage(existingSample, item.id) && (
+                      <span className="sr-only"> — Not reached</span>
+                    )}
                   </Button>
                 </li>
               ))}
@@ -190,68 +342,53 @@ export function SampleRegistrationPage() {
           {step === 0 ? (
             <form
               id="sample-registration"
-              onSubmit={(event) => {
-                event.preventDefault()
-                if (!values.source) {
-                  const message =
-                    "Select a source before registering the sample."
-                  setSourceError(message)
-                  toast.error(message, { id: "sample-source-error" })
-                  event.currentTarget
-                    .querySelector<HTMLInputElement>("#sample-source")
-                    ?.focus()
-                  return
-                }
-                save("registered")
-                selectStep(1)
-              }}
+              onSubmit={handleSubmit}
               className="no-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain"
             >
               <div className="px-1 pt-4 pb-16 md:pt-6">
                 <RegistrationFields
+                  readOnly={!editing}
                   identity={identity}
-                  receivedBy={user?.name ?? ""}
+                  receivedBy={values.receivedBy}
                   values={values}
                   onChange={updateField}
                   sources={sources}
-                  onAddSource={(source) =>
-                    setSources((current) => [...current, source])
-                  }
+                  onAddSource={(source) => {
+                    if (editing) addSource(source)
+                  }}
                   sourceError={sourceError}
+                  productError={productError}
+                  onProductChange={(productType) => {
+                    if (!editing) return
+                    setSample((current) =>
+                      changeSampleProduct(current, productType)
+                    )
+                    setProductError("")
+                  }}
                 />
               </div>
             </form>
           ) : step === 1 ? (
             <form
               id="sample-lab-tests"
-              onSubmit={(event) => {
-                event.preventDefault()
-                if (!user) return
-                setReview((current) => ({
-                  ...current,
-                  analysedBy: current.analysedBy ?? {
-                    name: user.name,
-                    email: user.email,
-                    signedAt: new Date().toISOString(),
-                  },
-                }))
-                selectStep(2)
-              }}
+              onSubmit={handleSubmit}
               className="no-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain"
             >
               <div className="px-1 pt-4 pb-16 md:pt-6">
                 <LabTestFields
+                  readOnly={!editing}
                   reportNumber={reportNumber}
                   testResults={testResults}
-                  onTestResultsChange={(rows) => {
-                    setTestResults(rows)
-                    setReview(emptyReview)
-                  }}
+                  onTestResultsChange={(rows) =>
+                    updateLaboratory("results", rows)
+                  }
                   values={labDetails}
-                  onChange={(field, value) => {
-                    setLabDetails((current) => ({ ...current, [field]: value }))
-                    setReview(emptyReview)
-                  }}
+                  onChange={(field, value) =>
+                    updateLaboratory("details", {
+                      ...labDetails,
+                      [field]: value,
+                    })
+                  }
                 />
               </div>
             </form>
@@ -259,48 +396,29 @@ export function SampleRegistrationPage() {
             <div className="no-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain">
               <div className="px-1 pt-4 pb-16 md:pt-6">
                 <LabReportPreview
+                  readOnly={!editing}
                   reportNumber={reportNumber}
                   identity={identity}
                   details={labDetails}
-                  source={sources.find((source) => source.id === values.source)}
+                  source={sources.find(
+                    (source) => source.id === values.sourceId
+                  )}
                   results={testResults}
                   review={review}
-                  reviewerName={user?.name ?? ""}
                   onReview={(action, conclusion, remarks) => {
-                    if (!user) return
-                    const signature = {
-                      name: user.name,
-                      email: user.email,
-                      signedAt: new Date().toISOString(),
-                    }
-                    setReview((current) =>
-                      action === "technical-sign-off"
-                        ? {
-                            ...current,
-                            conclusion,
-                            remarks,
-                            technicalSignatory: signature,
-                            status: "awaiting-review",
-                            decidedBy: null,
-                          }
-                        : {
-                            ...current,
-                            conclusion,
-                            remarks,
-                            status: action,
-                            decidedBy: signature,
-                            technicalSignatory:
-                              current.conclusion === conclusion &&
-                              current.remarks === remarks
-                                ? current.technicalSignatory
-                                : null,
-                          }
-                    )
-                    toast.success(
-                      action === "technical-sign-off"
-                        ? "Technical sign-off recorded for this demo session."
-                        : `Report ${action} for this demo session.`
-                    )
+                    if (!editing || !user) return
+                    persist({
+                      ...sample,
+                      laboratory: {
+                        ...sample.laboratory,
+                        review: {
+                          ...review,
+                          status: action,
+                          conclusion,
+                          remarks,
+                        },
+                      },
+                    })
                   }}
                 />
               </div>
@@ -308,51 +426,40 @@ export function SampleRegistrationPage() {
           ) : step === 3 ? (
             <form
               id="sample-tanker-log"
-              onSubmit={(event) => {
-                event.preventDefault()
-                toast.success(
-                  "Tanker log retained for this demo session. Entries reset on refresh."
-                )
-                selectStep(4)
-              }}
+              onSubmit={handleSubmit}
               className="no-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain"
             >
               <div className="px-1 pt-4 pb-16 md:pt-6">
                 <TankerLogFields
+                  readOnly={!editing}
                   sampleNumber={identity.id}
                   values={tankerDetails}
                   chambers={tankerChambers}
                   onChange={(field, value) =>
-                    setTankerDetails((current) => ({
-                      ...current,
-                      [field]: value,
-                    }))
+                    updateLog("tanker", {
+                      details: { ...tankerDetails, [field]: value },
+                      chambers: tankerChambers,
+                    })
                   }
-                  onChambersChange={setTankerChambers}
+                  onChambersChange={(chambers) =>
+                    updateLog("tanker", { details: tankerDetails, chambers })
+                  }
                 />
               </div>
             </form>
           ) : step === 4 ? (
             <form
               id="sample-silo-log"
-              onSubmit={(event) => {
-                event.preventDefault()
-                toast.success(
-                  "Silo log retained for this demo session. Entries reset on refresh."
-                )
-                selectStep(5)
-              }}
+              onSubmit={handleSubmit}
               className="no-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain"
             >
               <div className="px-1 pt-4 pb-16 md:pt-6">
                 <SiloLogFields
+                  readOnly={!editing}
                   sampleNumber={identity.id}
                   values={siloDetails}
                   onChange={(field, value) =>
-                    setSiloDetails((current) => ({
-                      ...current,
-                      [field]: value,
-                    }))
+                    updateLog("silo", { ...siloDetails, [field]: value })
                   }
                 />
               </div>
@@ -360,98 +467,94 @@ export function SampleRegistrationPage() {
           ) : step === 5 ? (
             <form
               id="sample-standardization-log"
-              onSubmit={(event) => {
-                event.preventDefault()
-                toast.success(
-                  "Standardization log retained for this demo session. Entries reset on refresh."
-                )
-                selectStep(6)
-              }}
+              onSubmit={handleSubmit}
               className="no-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain"
             >
               <div className="px-1 pt-4 pb-16 md:pt-6">
                 <SampleLogFields
+                  readOnly={!editing}
                   prefix="standardization"
                   sections={standardizationLogSections}
                   sampleNumber={identity.id}
                   values={standardizationDetails}
                   onChange={(field, value) =>
-                    setStandardizationDetails((current) => ({
-                      ...current,
+                    updateLog("standardization", {
+                      ...standardizationDetails,
                       [field]: value,
-                    }))
+                    })
                   }
                 />
               </div>
             </form>
           ) : (
             <form
-              id="sample-uht-log"
-              onSubmit={(event) => {
-                event.preventDefault()
-                toast.success(
-                  "UHT log saved for this demo session. Entries reset on refresh."
-                )
-              }}
+              id="sample-final-product-log"
+              onSubmit={handleSubmit}
               className="no-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain"
             >
               <div className="px-1 pt-4 pb-16 md:pt-6">
-                <SampleLogFields
-                  prefix="uht"
-                  sections={uhtLogSections}
+                <FinalProductLogFields
+                  readOnly={!editing}
                   sampleNumber={identity.id}
-                  values={uhtDetails}
-                  onChange={(field, value) =>
-                    setUhtDetails((current) => ({ ...current, [field]: value }))
-                  }
+                  values={finalProductDetails}
+                  onChange={(values) => {
+                    if (!editing) return
+                    setSample((current) => ({
+                      ...current,
+                      registration: {
+                        ...current.registration,
+                        productType:
+                          values.productType ??
+                          current.registration.productType,
+                      },
+                      logs: { ...current.logs, finalProduct: values },
+                    }))
+                  }}
                 />
               </div>
             </form>
           )}
         </div>
-        <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t bg-muted px-5 py-3">
-          {step === 0 ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => save("draft")}
-              >
-                Save draft
-              </Button>
-              <Button type="submit" form="sample-registration">
-                Continue
-              </Button>
-            </>
-          ) : (
-            <>
+        {editing && (
+          <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t bg-muted px-5 py-3">
+            {step > 0 && (
               <Button
                 className="mr-auto"
                 variant="outline"
                 onClick={() => selectStep(step - 1)}
               >
-                <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
                 Back
               </Button>
-              {step === sampleSteps.length - 1 && (
-                <Button type="submit" form={stepForm}>
-                  Save
-                </Button>
-              )}
-              {step < sampleSteps.length - 1 && (
-                <Button
-                  variant="default"
-                  type={stepForm ? "submit" : "button"}
-                  form={stepForm}
-                  onClick={stepForm ? undefined : () => selectStep(step + 1)}
-                >
-                  Next step
-                  <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
-                </Button>
-              )}
-            </>
-          )}
-        </footer>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSample(structuredClone(existingSample))
+                navigate(viewedStage, false)
+              }}
+            >
+              Cancel
+            </Button>
+            {formId && !canAdvance(existingSample, viewedStage) && (
+              <Button type="submit" form={formId}>
+                {sample.status === "draft" && step === 0
+                  ? "Save draft"
+                  : "Save"}
+              </Button>
+            )}
+            {canAdvance(existingSample, viewedStage) && (
+              <Button
+                type={formId ? "submit" : "button"}
+                value="advance"
+                form={formId}
+                onClick={formId ? undefined : () => submit(true)}
+              >
+                {step === 6 ? "Complete" : "Continue"}
+                {step < 6 && <ArrowRightIcon aria-hidden="true" />}
+              </Button>
+            )}
+          </footer>
+        )}
       </div>
     </div>
   )

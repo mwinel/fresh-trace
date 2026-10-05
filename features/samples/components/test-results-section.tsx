@@ -1,5 +1,7 @@
 "use client"
 
+import { parameterMetadata } from "../data/registration-data"
+import { parameterResult } from "../sample-state"
 import { useRef } from "react"
 import { PlusIcon, Trash2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -28,7 +30,7 @@ import {
   ComboboxList,
   ComboboxItem,
 } from "@/components/ui/combobox"
-import { testParameters } from "../data"
+import { testParameters } from "../data/registration-data"
 import type { LabTestResult } from "../types"
 
 function resultColor(value: string) {
@@ -68,7 +70,10 @@ function compatibleResult(parameter: string, value: string) {
     : ""
 }
 
-const columns: { key: keyof Omit<LabTestResult, "id">; label: string }[] = [
+const columns: {
+  key: keyof Omit<LabTestResult, "id" | "specification" | "testMethod">
+  label: string
+}[] = [
   { key: "parameter", label: "Parameter" },
   { key: "fSilo", label: "F/SILO" },
   { key: "mSilo", label: "M/SILO" },
@@ -78,21 +83,15 @@ const columns: { key: keyof Omit<LabTestResult, "id">; label: string }[] = [
 ]
 
 export function createTestResult(parameter: string): LabTestResult {
-  return {
-    id: crypto.randomUUID(),
-    parameter,
-    fSilo: "",
-    mSilo: "",
-    bSilo: "",
-    lSilo: "",
-    status: "",
-  }
+  return parameterResult(parameter, crypto.randomUUID())
 }
 
 export function TestResultsSection({
+  readOnly = false,
   rows,
   onChange,
 }: {
+  readOnly?: boolean
   rows: LabTestResult[]
   onChange: (rows: LabTestResult[]) => void
 }) {
@@ -111,7 +110,9 @@ export function TestResultsSection({
           Test results
         </h3>
         <p className="text-sm text-muted-foreground">
-          Use Add line to record another parameter.
+          {readOnly
+            ? "Recorded test results."
+            : "Use Add line to record another parameter."}
         </p>
       </div>
       <div className="-mx-1 min-w-0 [&>[data-slot=table-container]]:px-1">
@@ -148,6 +149,7 @@ export function TestResultsSection({
                   >
                     {column.key === "parameter" ? (
                       <Combobox
+                        disabled={readOnly}
                         items={testParameters.filter(
                           (parameter) =>
                             !rows.some(
@@ -164,6 +166,7 @@ export function TestResultsSection({
                                 ? {
                                     ...current,
                                     parameter: parameter ?? "",
+                                    ...parameterMetadata(parameter ?? ""),
                                     fSilo: compatibleResult(
                                       parameter ?? "",
                                       current.fSilo
@@ -187,6 +190,7 @@ export function TestResultsSection({
                         }
                       >
                         <ComboboxInput
+                          disabled={readOnly}
                           aria-label={`Parameter, row ${index + 1}`}
                           placeholder="Select parameter…"
                           ref={(element) => {
@@ -213,6 +217,7 @@ export function TestResultsSection({
                       </Combobox>
                     ) : column.key === "status" ? (
                       <Select
+                        disabled={readOnly}
                         items={[
                           { value: "fail", label: "Fail" },
                           { value: "pass", label: "Pass" },
@@ -255,6 +260,7 @@ export function TestResultsSection({
                       </Select>
                     ) : resultOptions(row.parameter).length > 0 ? (
                       <Select
+                        disabled={readOnly}
                         items={resultOptions(row.parameter)}
                         value={row[column.key] || null}
                         onValueChange={(value) => {
@@ -296,6 +302,7 @@ export function TestResultsSection({
                       </Select>
                     ) : (
                       <Input
+                        readOnly={readOnly}
                         aria-label={`${column.label}, row ${index + 1}`}
                         value={row[column.key]}
                         onChange={(event) =>
@@ -315,42 +322,48 @@ export function TestResultsSection({
                   </TableCell>
                 ))}
                 <TableCell className="text-righ pr-0 pl-1">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon-sm"
-                    aria-label={`Delete ${row.parameter || "test result"}, row ${index + 1}`}
-                    onClick={() =>
-                      onChange(rows.filter((current) => current.id !== row.id))
-                    }
-                  >
-                    <Trash2Icon
-                      className="text-destructive"
-                      aria-hidden="true"
-                    />
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon-sm"
+                      aria-label={`Delete ${row.parameter || "test result"}, row ${index + 1}`}
+                      onClick={() =>
+                        onChange(
+                          rows.filter((current) => current.id !== row.id)
+                        )
+                      }
+                    >
+                      <Trash2Icon
+                        className="text-destructive"
+                        aria-hidden="true"
+                      />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-      <Button
-        type="button"
-        variant="link"
-        className="self-start px-0"
-        disabled={!nextParameter}
-        onClick={() => {
-          if (!nextParameter) return
-          const row = createTestResult(nextParameter)
-          focusRow.current = row.id
-          onChange([...rows, row])
-        }}
-      >
-        <PlusIcon aria-hidden="true" />
-        Add line
-      </Button>
-      {!nextParameter && (
+      {!readOnly && (
+        <Button
+          type="button"
+          variant="link"
+          className="self-start px-0"
+          disabled={!nextParameter}
+          onClick={() => {
+            if (!nextParameter) return
+            const row = createTestResult(nextParameter)
+            focusRow.current = row.id
+            onChange([...rows, row])
+          }}
+        >
+          <PlusIcon aria-hidden="true" />
+          Add line
+        </Button>
+      )}
+      {!readOnly && !nextParameter && (
         <p className="text-sm text-muted-foreground">
           All parameters have been added.
         </p>

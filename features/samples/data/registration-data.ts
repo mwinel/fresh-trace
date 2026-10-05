@@ -1,6 +1,6 @@
-import laboratoryTestParameters from "./data/laboratory-test-parameters.json"
-import sourceFixtures from "./data/sources.json"
-import type { SampleSource } from "./types"
+import laboratoryTestParameters from "./laboratory-test-parameters.json"
+import sourceFixtures from "./sources.json"
+import type { SampleSource } from "../types"
 
 // Trusted local source fixtures.
 export const initialSources = sourceFixtures as SampleSource[]
@@ -28,7 +28,7 @@ export const sampleSteps = [
     label: "Standardization logs",
     title: "Pasteurized milk standardization logs",
   },
-  { id: "product-logs", label: "Product logs", title: "UHT logs" },
+  { id: "product-logs", label: "Product logs", title: "Final product logs" },
 ] as const
 
 // Illustrative options for the local demo, not laboratory policy.
@@ -68,3 +68,13 @@ export const testParameters = laboratoryTestParameters.parameters.map(
   (parameter) =>
     parameter.unit ? `${parameter.name}, ${parameter.unit}` : parameter.name
 )
+
+export function parameterMetadata(label: string) {
+  const parameter = laboratoryTestParameters.parameters.find(
+    (item) => (item.unit ? `${item.name}, ${item.unit}` : item.name) === label
+  )
+  return {
+    specification: parameter?.specification ?? "",
+    testMethod: parameter?.testMethod ?? "",
+  }
+}
