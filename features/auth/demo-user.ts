@@ -6,10 +6,19 @@ export const demoUser = {
 
 export type DemoUser = typeof demoUser
 
+const demoUsers: DemoUser[] = [
+  demoUser,
+  { name: "Admin", email: "admin@example.com", avatar: "" },
+]
+
 // Client-side demo credentials only; this is not production authentication.
-export function matchesDemoCredentials(email: string, password: string) {
+export function authenticateDemoUser(
+  email: string,
+  password: string
+): DemoUser | null {
+  if (password !== "admin123") return null
   return (
-    email.trim().toLowerCase() === demoUser.email && password === "admin123"
+    demoUsers.find((user) => user.email === email.trim().toLowerCase()) ?? null
   )
 }
 
@@ -20,11 +29,8 @@ export function readDemoSession(): DemoUser | null {
     const stored: unknown = JSON.parse(
       localStorage.getItem(demoSessionKey) ?? "null"
     )
-    return stored !== null &&
-      typeof stored === "object" &&
-      "email" in stored &&
-      stored.email === demoUser.email
-      ? demoUser
+    return stored !== null && typeof stored === "object" && "email" in stored
+      ? (demoUsers.find((user) => user.email === stored.email) ?? null)
       : null
   } catch {
     return null

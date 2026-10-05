@@ -4,8 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import {
   demoSessionKey,
-  demoUser,
-  matchesDemoCredentials,
+  authenticateDemoUser,
   readDemoSession,
   type DemoUser,
 } from "./demo-user"
@@ -42,9 +41,10 @@ export function DemoSessionProvider({
   }, [])
 
   function login(email: string, password: string) {
-    if (!matchesDemoCredentials(email, password)) return false
-    localStorage.setItem(demoSessionKey, JSON.stringify(demoUser))
-    setUser(demoUser)
+    const matchedUser = authenticateDemoUser(email, password)
+    if (!matchedUser) return false
+    localStorage.setItem(demoSessionKey, JSON.stringify(matchedUser))
+    setUser(matchedUser)
     return true
   }
 
